@@ -1,16 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #3b82f6; /* A clean blue for buttons */
+  --color-brand: #3b82f6;
 }
 
-/* Custom base styles for dark mode aesthetics */
 body {
-  background-color: #0f172a; /* slate-900 */
-  color: #f8fafc; /* slate-50 */
+  background-color: #0f172a;
+  color: #f8fafc;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
-/* Additional specific styles if needed */
+/* Safe area for mobile notches / home bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Date inputs on dark bg */
+input[type="date"], input[type="month"] {
+  color-scheme: dark;
+}

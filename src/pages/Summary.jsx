@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
-import { BANKS, getBankById, getBankLogo } from '../lib/banks';
-import { BarChart2, Filter, X, Loader2, ChevronDown } from 'lucide-react';
+import { BANKS, getBankById } from '../lib/banks';
+import BankLogo from '../components/BankLogo';
+import { BarChart2, Filter, X, Loader2, ChevronDown, DollarSign, Banknote } from 'lucide-react';
 
 function fmt(amount, currency) {
   const sym = currency === 'PHP' ? '₱' : '$';
@@ -166,15 +167,17 @@ export default function Summary() {
         </div>
       )}
 
-      {/* Totals */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gradient-to-br from-emerald-900/30 to-teal-900/20 border border-emerald-800/30 rounded-xl p-4">
-          <p className="text-xs text-emerald-500 uppercase tracking-wide mb-1">PHP Income</p>
-          <p className="text-xl font-bold text-emerald-400">₱{phpTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-900/30 to-indigo-900/20 border border-blue-800/30 rounded-xl p-4">
-          <p className="text-xs text-blue-500 uppercase tracking-wide mb-1">USD Income</p>
-          <p className="text-xl font-bold text-blue-400">${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+      {/* Shareable Story Card */}
+      <div className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-500/20 relative overflow-hidden mb-8">
+        <div className="absolute top-0 right-0 p-4 opacity-20"><DollarSign className="w-32 h-32" /></div>
+        <p className="text-white/80 font-medium tracking-wide uppercase text-xs mb-1">Your Earnings Summary</p>
+        <h2 className="text-4xl font-black tracking-tight mb-4 leading-tight">
+          You've been paid<br/>
+          <span className="text-emerald-300">₱{phpTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+        </h2>
+        {usdTotal > 0 && <p className="text-blue-200 font-semibold mb-5">+ ${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</p>}
+        <div className="flex items-center gap-2 text-xs font-medium bg-black/20 w-max px-3 py-1.5 rounded-full backdrop-blur-md">
+           <Banknote className="w-4 h-4" /> {filtered.length} Records tracked
         </div>
       </div>
 
@@ -194,10 +197,7 @@ export default function Summary() {
                 const bank = getBankById(bankId);
                 return (
                   <div key={bankId} className="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
-                    {bank?.domain
-                      ? <img src={getBankLogo(bank.domain)} alt={bank?.name} className="w-7 h-7 rounded-full bg-white p-0.5 object-contain" onError={e => e.target.style.display='none'} />
-                      : <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400">{bank?.name?.[0] ?? '?'}</div>
-                    }
+                    <BankLogo bank={bank} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-200">{bank?.name ?? bankId}</p>
                       <p className="text-xs text-slate-500">{data.count} record{data.count !== 1 ? 's' : ''}</p>
@@ -242,10 +242,7 @@ export default function Summary() {
                 const bank = getBankById(record.bank_id);
                 return (
                   <div key={record.id} className="bg-slate-900/40 border border-slate-800/50 rounded-xl px-4 py-3 flex items-center gap-3">
-                    {bank?.domain
-                      ? <img src={getBankLogo(bank.domain)} alt={bank?.name} className="w-6 h-6 rounded-full bg-white p-0.5 object-contain" onError={e => e.target.style.display='none'} />
-                      : <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400">{bank?.name?.[0] ?? '?'}</div>
-                    }
+                    <BankLogo bank={bank} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-300 truncate">
                         {record.is_freelance ? (record.project_name || 'Independent Project') : (record.jobs?.name || '—')}

@@ -1,26 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { BANKS, getBankById, getBankLogo } from '../lib/banks';
+import BankLogo from '../components/BankLogo';
 import { Plus, Trash2, Briefcase, ChevronDown, X, Loader2, DollarSign, Banknote } from 'lucide-react';
 
 const CURRENCIES = ['PHP', 'USD'];
-
-function BankLogo({ bank, size = 'md' }) {
-  const sz = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  if (!bank || !bank.domain) return (
-    <div className={`${sz} rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400`}>
-      {bank ? bank.name[0] : '?'}
-    </div>
-  );
-  return (
-    <img
-      src={getBankLogo(bank.domain)}
-      alt={bank.name}
-      className={`${sz} rounded-full object-contain bg-white p-0.5`}
-      onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-    />
-  );
-}
 
 // ── Add Job Modal ──
 function AddJobModal({ onClose, onSave }) {

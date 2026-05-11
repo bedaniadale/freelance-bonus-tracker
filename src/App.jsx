@@ -53,6 +53,13 @@ export default function App() {
   const [comments, setComments] = useState('');
   const [error, setError] = useState('');
 
+  // Finalize Modal State
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [periodTitle, setPeriodTitle] = useState('');
+
+  // History view — expanded snapshot ID
+  const [expandedSnapshot, setExpandedSnapshot] = useState(null);
+
   // Save to LocalStorage whenever state changes
   useEffect(() => {
     localStorage.setItem('fpbt_baseSalary', baseSalary);
@@ -153,12 +160,20 @@ export default function App() {
     setVault(vault.filter(post => post.id !== id));
   };
 
-  const handleFinalize = () => {
+  const openFinalizeModal = () => {
     if (vault.length === 0) return;
-    if (!window.confirm("Are you sure you want to finalize this period and move these posts to history?")) return;
+    // Pre-fill title with a reasonable default
+    const now = new Date();
+    const fmt = (d) => d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+    setPeriodTitle(fmt(now));
+    setShowFinalizeModal(true);
+  };
 
+  const handleFinalize = () => {
+    if (!periodTitle.trim()) return;
     const newSnapshot = {
       id: Date.now().toString(),
+      title: periodTitle.trim(),
       date: new Date().toISOString(),
       baseSalary,
       bonus: qualifiedCount * BONUS_AMOUNT,
@@ -166,14 +181,23 @@ export default function App() {
       qualifiedCount,
       posts: vault
     };
-
     setHistory([newSnapshot, ...history]);
-    setVault([]); // Clear vault for new period
+    setVault([]);
+    setShowFinalizeModal(false);
+    setPeriodTitle('');
+  };
+
+  const handleDeleteSnapshot = (id) => {
+    if (window.confirm('Delete this payout record? This cannot be undone.')) {
+      setHistory(history.filter(s => s.id !== id));
+      if (expandedSnapshot === id) setExpandedSnapshot(null);
+    }
   };
 
   const handleClearHistory = () => {
     if (window.confirm("Are you sure you want to delete all history? This cannot be undone.")) {
       setHistory([]);
+      setExpandedSnapshot(null);
     }
   };
 
@@ -327,7 +351,7 @@ export default function App() {
                   </span>
                 </h2>
                 <button 
-                  onClick={handleFinalize}
+                  onClick={openFinalizeModal}
                   disabled={vault.length === 0}
                   className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -389,64 +413,136 @@ export default function App() {
             {/* History View */}
             {history.length > 0 && (
               <section className="pt-8 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-5">
                   <h2 className="text-xl font-bold flex items-center gap-2 text-slate-300">
                     <History className="w-5 h-5 text-slate-400" /> Payout History
+                    <span className="text-sm font-normal bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full ml-1">{history.length}</span>
                   </h2>
                   <button 
                     onClick={handleClearHistory}
                     className="text-xs text-slate-500 hover:text-red-400 underline underline-offset-2"
                   >
-                    Clear History
+                    Clear All
                   </button>
                 </div>
-                <div className="space-y-4">
-                  {history.map(snapshot => (
-                    <div key={snapshot.id} className="bg-slate-900/30 border border-slate-800 rounded-xl p-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                        <div>
-                          <h3 className="font-medium text-slate-200">
-                            {new Date(snapshot.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-                          </h3>
-                          <p className="text-sm text-slate-500">{snapshot.posts.length} posts tracked</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-emerald-400">${snapshot.totalPay.toLocaleString()}</div>
-                          <div className="text-xs text-slate-500">Base: ${snapshot.baseSalary} | Bonus: ${snapshot.bonus}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 pt-4 border-t border-slate-800/50">
-                        <details className="group">
-                          <summary className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 transition-colors flex items-center outline-none list-none">
-                            <span className="group-open:hidden mr-1">▶</span>
-                            <span className="hidden group-open:inline mr-1">▼</span>
-                            View Tracked Links
-                          </summary>
-                          <div className="mt-3 space-y-2 pl-4 border-l-2 border-slate-800">
-                            {snapshot.posts.map(post => (
-                              <div key={post.id} className="flex items-center justify-between text-xs">
-                                <a href={post.link} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate max-w-[200px] sm:max-w-xs">
-                                  {post.shortcode}
-                                </a>
-                                <div className="text-slate-500 flex gap-3">
-                                  <span>💬 {post.comments}</span>
-                                  {post.views > 0 && <span>👁 {post.views}</span>}
-                                  {post.qualified && <span className="text-emerald-400 font-medium">+$100</span>}
-                                </div>
-                              </div>
-                            ))}
+                <div className="space-y-3">
+                  {history.map(snapshot => {
+                    const isOpen = expandedSnapshot === snapshot.id;
+                    return (
+                      <div key={snapshot.id} className="bg-slate-900/40 border border-slate-800 hover:border-slate-700 transition-colors rounded-xl overflow-hidden">
+                        {/* Snapshot Header — always visible, clickable to expand */}
+                        <button
+                          onClick={() => setExpandedSnapshot(isOpen ? null : snapshot.id)}
+                          className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 text-left"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${snapshot.qualifiedCount > 0 ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-100 truncate">
+                                {snapshot.title || new Date(snapshot.date).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                Saved {new Date(snapshot.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })} &bull; {snapshot.posts.length} posts &bull; {snapshot.qualifiedCount} qualified
+                              </p>
+                            </div>
                           </div>
-                        </details>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-emerald-400">${snapshot.totalPay.toLocaleString()}</div>
+                              <div className="text-xs text-slate-500">Base ${snapshot.baseSalary} + Bonus ${snapshot.bonus}</div>
+                            </div>
+                            <span className="text-slate-500 text-xs">{isOpen ? '▲' : '▼'}</span>
+                          </div>
+                        </button>
+
+                        {/* Expandable post list */}
+                        {isOpen && (
+                          <div className="px-5 pb-5 border-t border-slate-800">
+                            <div className="mt-4 space-y-2">
+                              {snapshot.posts.map(post => (
+                                <div key={post.id} className="flex items-center justify-between text-xs py-2 border-b border-slate-800/50 last:border-0">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded shrink-0">{post.shortcode}</span>
+                                    <a href={post.link} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate">
+                                      View ↗
+                                    </a>
+                                  </div>
+                                  <div className="text-slate-500 flex items-center gap-3 shrink-0">
+                                    <span>💬 {post.comments}</span>
+                                    {post.views > 0 && <span>👁 {post.views.toLocaleString()}</span>}
+                                    {post.qualified
+                                      ? <span className="text-emerald-400 font-semibold">+$100</span>
+                                      : <span className="text-slate-600">—</span>
+                                    }
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-4 flex justify-end">
+                              <button
+                                onClick={() => handleDeleteSnapshot(snapshot.id)}
+                                className="text-xs text-slate-600 hover:text-red-400 flex items-center gap-1 transition-colors"
+                              >
+                                <Trash2 className="w-3 h-3" /> Delete Record
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
           </div>
         </div>
       </div>
+
+      {/* Finalize Modal */}
+      {showFinalizeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-slate-100 mb-1">Finalize Period</h3>
+            <p className="text-sm text-slate-400 mb-5">
+              Give this pay period a name so you can identify it in history.
+            </p>
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Period Title</label>
+            <input
+              autoFocus
+              type="text"
+              value={periodTitle}
+              onChange={e => setPeriodTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleFinalize()}
+              placeholder="e.g. May 1–15, Week 3 April…"
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all mb-2"
+            />
+            <p className="text-xs text-slate-600 mb-6">You can type anything — a date range, a month, a pay period number, etc.</p>
+
+            {/* Summary */}
+            <div className="bg-slate-800/50 rounded-lg p-4 mb-6 text-sm space-y-1">
+              <div className="flex justify-between text-slate-400"><span>Posts</span><span className="text-slate-200 font-medium">{vault.length}</span></div>
+              <div className="flex justify-between text-slate-400"><span>Qualified</span><span className="text-emerald-400 font-medium">{qualifiedCount}</span></div>
+              <div className="flex justify-between text-slate-400 border-t border-slate-700 pt-2 mt-2"><span>Total Pay</span><span className="text-white font-bold text-base">${totalPay}</span></div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowFinalizeModal(false)}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-3 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFinalize}
+                disabled={!periodTitle.trim()}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" /> Save & Clear Vault
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

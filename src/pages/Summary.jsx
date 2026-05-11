@@ -106,7 +106,7 @@ export default function Summary() {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex-1 w-full max-w-md mx-auto flex flex-col pt-12 pb-12 px-4">
+        <div className="flex-1 w-full max-w-md mx-auto flex flex-col pt-20 pb-12 px-4">
           
           <div className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-500/20 relative overflow-hidden mb-8 shrink-0">
             <div className="absolute top-0 right-0 p-4 opacity-10"><DollarSign className="w-48 h-48 -mr-10 -mt-10" /></div>

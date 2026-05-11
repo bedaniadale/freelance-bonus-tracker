@@ -24,7 +24,7 @@ function AddJobModal({ onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-slate-100">Add New Job</h3>
@@ -122,7 +122,7 @@ function AddRecordModal({ jobs, onClose, onSave }) {
   return (
     <>
       {showAddJob && <AddJobModal onClose={() => setShowAddJob(false)} onSave={handleJobAdded} />}
-      <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
         <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-bold text-slate-100">Add Income Record</h3>

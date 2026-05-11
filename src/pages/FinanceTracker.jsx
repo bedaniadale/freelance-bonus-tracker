@@ -243,7 +243,10 @@ export default function FinanceTracker() {
   }, []);
 
   const handleRecordAdded = (record) => {
-    setRecords([record, ...records]);
+    setRecords(prev => {
+      const updated = [record, ...prev];
+      return updated.sort((a, b) => new Date(b.date) - new Date(a.date));
+    });
     setShowAddRecord(false);
   };
 

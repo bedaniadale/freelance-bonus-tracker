@@ -23,6 +23,7 @@ export default function Summary() {
   const [filterJob, setFilterJob] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -94,17 +95,91 @@ export default function Summary() {
     </div>
   );
 
+  // ── FULL SCREEN STORY INVOICE ──
+  if (showInvoice) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0f172a] overflow-y-auto flex flex-col font-sans">
+        <button 
+          onClick={() => setShowInvoice(false)} 
+          className="absolute top-6 right-6 z-50 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md transition-all"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="flex-1 w-full max-w-md mx-auto flex flex-col pt-12 pb-12 px-4">
+          
+          <div className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-500/20 relative overflow-hidden mb-8 shrink-0">
+            <div className="absolute top-0 right-0 p-4 opacity-10"><DollarSign className="w-48 h-48 -mr-10 -mt-10" /></div>
+            <p className="text-white/80 font-semibold tracking-widest uppercase text-[10px] mb-2">Earnings Summary</p>
+            <h2 className="text-[2.5rem] font-black tracking-tight mb-6 leading-none">
+              You've been<br/>paid
+            </h2>
+            
+            {phpTotal > 0 && (
+              <div className="mb-2">
+                <span className="text-emerald-300 font-bold text-5xl tracking-tighter">₱{phpTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            {usdTotal > 0 && (
+              <div className="mb-6">
+                <span className="text-blue-200 font-semibold text-2xl tracking-tight">+ ${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-xs font-semibold bg-black/20 w-max px-4 py-2 rounded-full backdrop-blur-md mt-6">
+               <Banknote className="w-4 h-4" /> {filtered.length} Records tracked
+            </div>
+          </div>
+
+          <div className="px-2 space-y-4">
+            <h3 className="text-xs font-bold tracking-widest text-slate-500 uppercase px-2">Transaction Details</h3>
+            <div className="space-y-3">
+              {filtered.map(record => {
+                const bank = getBankById(record.bank_id);
+                return (
+                  <div key={record.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+                    <BankLogo bank={bank} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-200 truncate">
+                        {record.is_freelance ? (record.project_name || 'Independent Project') : (record.jobs?.name || '—')}
+                      </p>
+                      <p className="text-xs text-slate-500 font-medium">{new Date(record.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · {bank?.name}</p>
+                    </div>
+                    <p className={`text-base font-black shrink-0 tracking-tight ${record.currency === 'PHP' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                      {fmt(record.amount, record.currency)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Summary</h1>
-          <p className="text-slate-400 text-sm mt-0.5">{filtered.length} records in view</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Summary</h1>
+            <p className="text-slate-400 text-sm mt-0.5">{filtered.length} records in view</p>
+          </div>
+          <button onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${showFilters || activeFilterCount > 0 ? 'bg-violet-500/20 border-violet-500/30 text-violet-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300'}`}>
+            <Filter className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="bg-violet-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">{activeFilterCount}</span>}
+          </button>
         </div>
-        <button onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${showFilters || activeFilterCount > 0 ? 'bg-violet-500/20 border-violet-500/30 text-violet-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300'}`}>
-          <Filter className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="bg-violet-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">{activeFilterCount}</span>}
+        
+        <button 
+          onClick={() => setShowInvoice(true)}
+          disabled={filtered.length === 0}
+          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Generate Invoice Summary ✨
         </button>
       </div>
 
@@ -166,20 +241,6 @@ export default function Summary() {
           </div>
         </div>
       )}
-
-      {/* Shareable Story Card */}
-      <div className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-500/20 relative overflow-hidden mb-8">
-        <div className="absolute top-0 right-0 p-4 opacity-20"><DollarSign className="w-32 h-32" /></div>
-        <p className="text-white/80 font-medium tracking-wide uppercase text-xs mb-1">Your Earnings Summary</p>
-        <h2 className="text-4xl font-black tracking-tight mb-4 leading-tight">
-          You've been paid<br/>
-          <span className="text-emerald-300">₱{phpTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
-        </h2>
-        {usdTotal > 0 && <p className="text-blue-200 font-semibold mb-5">+ ${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</p>}
-        <div className="flex items-center gap-2 text-xs font-medium bg-black/20 w-max px-3 py-1.5 rounded-full backdrop-blur-md">
-           <Banknote className="w-4 h-4" /> {filtered.length} Records tracked
-        </div>
-      </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-slate-500">

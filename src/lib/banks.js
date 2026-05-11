@@ -28,7 +28,9 @@ export const BANKS = [
 
 export function getBankLogo(domain) {
   if (!domain) return null;
-  return `https://cdn.brandfetch.io/${domain}/w/128/h/128?c=1`;
+  // User requested to try thesvg.org
+  // Note: if thesvg.org is not an API, this will fall back to the letter icon via the onError handler in BankLogo.jsx
+  return `https://thesvg.org/svg/${domain}`;
 }
 
 export function getBankById(id) {

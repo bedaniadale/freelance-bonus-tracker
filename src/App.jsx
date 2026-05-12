@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, History, CheckCircle, XCircle, TrendingUp, DollarSign, List, Save, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, Trash2, History, CheckCircle, XCircle, TrendingUp, DollarSign, List, Save, RefreshCw, Loader2, Edit2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const FRANKFURTER_API = 'https://api.frankfurter.dev/v1/latest?from=USD&to=PHP';
@@ -21,6 +21,10 @@ export default function App() {
   const [vault, setVault] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Edit Post
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editValues, setEditValues] = useState({ views: '', comments: '' });
 
   // Exchange Rate
   const [phpRate, setPhpRate] = useState(() => {
@@ -112,6 +116,31 @@ export default function App() {
     if (err) { setError('Failed to save: ' + err.message); return; }
     setVault([data, ...vault]);
     setLink(''); setViews(''); setComments('');
+  };
+
+  // ── Edit post ──
+  const startEditPost = (post) => {
+    setEditingPostId(post.id);
+    setEditValues({ views: post.views, comments: post.comments });
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditValues({ views: '', comments: '' });
+  };
+
+  const saveEditPost = async (id) => {
+    const vCount = parseInt(editValues.views || 0, 10);
+    const cCount = parseInt(editValues.comments || 0, 10);
+    const qualified = isQualified(vCount, cCount);
+    
+    const updates = { views: vCount, comments: cCount, qualified };
+    
+    const { error: err } = await supabase.from('vault').update(updates).eq('id', id);
+    if (err) { alert('Failed to update: ' + err.message); return; }
+    
+    setVault(vault.map(p => p.id === id ? { ...p, ...updates } : p));
+    setEditingPostId(null);
   };
 
   // ── Remove post ──
@@ -253,15 +282,27 @@ export default function App() {
                           <span className="font-mono text-xs text-slate-400 bg-slate-950 px-2 py-1 rounded">{post.shortcode}</span>
                           <a href={post.link} target="_blank" rel="noreferrer" className="text-sm text-blue-400 hover:text-blue-300 truncate transition-colors">View Post ↗</a>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-300">
-                          <span title="Comments" className={post.comments >= COMMENTS_THRESHOLD ? 'text-amber-400 font-semibold' : ''}>💬 {post.comments.toLocaleString()}</span>
-                          {post.views > 0 && <span title="Views">👁 {post.views.toLocaleString()}</span>}
-                        </div>
+                        {editingPostId === post.id ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <input type="number" min="0" value={editValues.comments} onChange={e => setEditValues({ ...editValues, comments: e.target.value })} placeholder="Comments" className="w-24 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none text-slate-200" title="Comments" />
+                            <input type="number" min="0" value={editValues.views} onChange={e => setEditValues({ ...editValues, views: e.target.value })} placeholder="Views" className="w-24 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none text-slate-200" title="Views" />
+                            <button onClick={() => saveEditPost(post.id)} className="text-emerald-400 hover:text-emerald-300 px-3 py-1 rounded text-sm font-medium bg-emerald-500/10 border border-emerald-500/20">Save</button>
+                            <button onClick={cancelEditPost} className="text-slate-400 hover:text-slate-300 px-3 py-1 rounded text-sm bg-slate-800 border border-slate-700">Cancel</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-4 text-sm text-slate-300 mt-1">
+                            <span title="Comments" className={post.comments >= COMMENTS_THRESHOLD ? 'text-amber-400 font-semibold' : ''}>💬 {post.comments.toLocaleString()}</span>
+                            {post.views > 0 && <span title="Views" className={post.views >= VIEWS_THRESHOLD ? 'text-emerald-400 font-semibold' : ''}>👁 {post.views.toLocaleString()}</span>}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-800 sm:border-0">
+                      <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-800 sm:border-0">
                         {post.qualified
-                          ? <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full uppercase tracking-wider"><CheckCircle className="w-3.5 h-3.5" /> Bonus +$100</div>
-                          : <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 border border-slate-700 text-slate-400 text-xs font-semibold rounded-full uppercase tracking-wider">No Bonus</div>}
+                          ? <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full uppercase tracking-wider mr-2"><CheckCircle className="w-3.5 h-3.5" /> Bonus +$100</div>
+                          : <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 border border-slate-700 text-slate-400 text-xs font-semibold rounded-full uppercase tracking-wider mr-2">No Bonus</div>}
+                        {editingPostId !== post.id && (
+                          <button onClick={() => startEditPost(post)} className="text-slate-500 hover:text-blue-400 p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Edit Post"><Edit2 className="w-4 h-4" /></button>
+                        )}
                         <button onClick={() => handleRemoveEntry(post.id)} className="text-slate-500 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Remove"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, History, CheckCircle, XCircle, TrendingUp, DollarSign, List, Save, RefreshCw, Loader2, Edit2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import TransferToFinanceModal from './components/TransferToFinanceModal';
 
 const FRANKFURTER_API = 'https://api.frankfurter.dev/v1/latest?from=USD&to=PHP';
 const RATE_CACHE_KEY = 'fpbt_usdPhpRate';
@@ -48,6 +49,7 @@ export default function App() {
   const [periodTitle, setPeriodTitle] = useState('');
   const [finalizing, setFinalizing] = useState(false);
   const [expandedSnapshot, setExpandedSnapshot] = useState(null);
+  const [transferSnapshot, setTransferSnapshot] = useState(null);
 
   // ── Load all data from Supabase on mount ──
   useEffect(() => {
@@ -357,7 +359,10 @@ export default function App() {
                                 </div>
                               ))}
                             </div>
-                            <div className="mt-4 flex justify-end">
+                            <div className="mt-4 flex justify-end gap-3">
+                              <button onClick={() => setTransferSnapshot(snapshot)} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                                <DollarSign className="w-3 h-3" /> Add to Finance
+                              </button>
                               <button onClick={() => handleDeleteSnapshot(snapshot.id)} className="text-xs text-slate-600 hover:text-red-400 flex items-center gap-1 transition-colors">
                                 <Trash2 className="w-3 h-3" /> Delete Record
                               </button>
@@ -396,6 +401,19 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Transfer to Finance Modal */}
+      {transferSnapshot && (
+        <TransferToFinanceModal
+          snapshot={transferSnapshot}
+          phpRate={phpRate}
+          onClose={() => setTransferSnapshot(null)}
+          onSuccess={() => {
+            setTransferSnapshot(null);
+            alert('Successfully added to finance records!');
+          }}
+        />
       )}
     </div>
   );

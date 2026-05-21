@@ -8,7 +8,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 safe-area-bottom">
-      <div className="max-w-lg mx-auto flex items-center justify-around">
+      <div className="w-full md:w-1/2 mx-auto flex items-center justify-around">
         <NavLink to="/" end className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
           <TrendingUp className="w-5 h-5" />
           <span>Bonus</span>

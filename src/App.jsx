@@ -8,7 +8,7 @@ const RATE_CACHE_KEY = 'fpbt_usdPhpRate';
 const RATE_CACHE_TTL_MS = 60 * 60 * 1000;
 const BONUS_AMOUNT = 100;
 const VIEWS_THRESHOLD = 25000;
-const COMMENTS_THRESHOLD = 320;
+const COMMENTS_THRESHOLD = 290;
 
 function extractShortcode(url) {
   try {
@@ -234,7 +234,7 @@ export default function App() {
                   <input type="url" required value={link} onChange={e => setLink(e.target.value)} placeholder="https://instagram.com/p/..." className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Comments <span className="text-amber-400 font-bold">*</span> <span className="ml-1 text-slate-600 normal-case font-normal">Bonus at &gt;= 320</span></label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Comments <span className="text-amber-400 font-bold">*</span> <span className="ml-1 text-slate-600 normal-case font-normal">Bonus at &gt;= 290</span></label>
                   <input type="number" required min="0" value={comments} onChange={e => setComments(e.target.value)} placeholder="e.g. 325" className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
                 </div>
                 <div>
@@ -250,7 +250,7 @@ export default function App() {
             <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
               <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2"><History className="w-4 h-4" /> Qualification Rules</h3>
               <ul className="text-sm space-y-2 text-slate-500">
-                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-amber-400" /> {'>'} = 320 Comments <span className="text-xs text-amber-500/70 ml-1">(primary)</span></li>
+                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-amber-400" /> {'>'} = 290 Comments <span className="text-xs text-amber-500/70 ml-1">(primary)</span></li>
                 <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> {'>'} = 25,000 Views <span className="text-xs text-slate-600 ml-1">(optional)</span></li>
                 <li className="mt-4 pt-4 border-t border-slate-800 italic">Posts meeting either condition earn a $100 bonus.</li>
               </ul>

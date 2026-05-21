@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { BANKS, getBankById } from '../lib/banks';
 import BankLogo from './BankLogo';
@@ -10,6 +10,25 @@ export default function TransferToFinanceModal({ snapshot, phpRate, onClose, onS
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  
+  const [jobs, setJobs] = useState([]);
+  const [jobId, setJobId] = useState('');
+
+  useEffect(() => {
+    async function fetchJobs() {
+      const { data } = await supabase.from('jobs').select('*').order('created_at');
+      if (data) {
+        setJobs(data);
+        const gdJob = data.find(j => j.name.toLowerCase().includes('graphic design'));
+        if (gdJob) {
+          setJobId(gdJob.id);
+        } else if (data.length > 0) {
+          setJobId(data[0].id);
+        }
+      }
+    }
+    fetchJobs();
+  }, []);
 
   const selectedBank = getBankById(bankId);
   const phBanks = BANKS.filter(b => b.category === 'PH');
@@ -25,14 +44,14 @@ export default function TransferToFinanceModal({ snapshot, phpRate, onClose, onS
     setError('');
 
     const record = {
-      job_id: null,
-      is_freelance: true,
-      project_name: "Bonus Tracker: " + snapshot.title,
+      job_id: jobId || null,
+      is_freelance: !jobId,
+      project_name: jobId ? null : "Bonus Tracker: " + snapshot.title,
       bank_id: bankId,
       amount: parseFloat(amountToTransfer),
       currency,
       date: new Date().toISOString().split('T')[0],
-      notes: `${snapshot.qualified_count} qualified out of ${snapshot.posts?.length || 0} posts`
+      notes: `Bonus Tracker: ${snapshot.title} (${snapshot.qualified_count} qualified out of ${snapshot.posts?.length || 0} posts)`
     };
 
     const { data, error: err } = await supabase.from('income_records').insert(record);
@@ -56,6 +75,15 @@ export default function TransferToFinanceModal({ snapshot, phpRate, onClose, onS
         <p className="text-sm text-slate-400 mb-6">You are adding the payout for <span className="font-semibold text-slate-200">{snapshot.title}</span> to your finance records.</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Link to Job</label>
+            <select value={jobId} onChange={e => setJobId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 appearance-none text-slate-200">
+              <option value="">— Save as Independent Project —</option>
+              {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Currency</label>
@@ -123,3 +151,4 @@ export default function TransferToFinanceModal({ snapshot, phpRate, onClose, onS
     </div>
   );
 }
+

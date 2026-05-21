@@ -2,17 +2,43 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { BANKS, getBankById } from '../lib/banks';
 import BankLogo from '../components/BankLogo';
-import { BarChart2, Filter, X, Loader2, ChevronDown, DollarSign, Banknote } from 'lucide-react';
+import { BarChart2, Filter, X, Loader2, DollarSign, Banknote } from 'lucide-react';
 
 function fmt(amount, currency) {
   const sym = currency === 'PHP' ? '₱' : '$';
-  return `${sym}${parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  return `${sym}${parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtMode(amount, fromCurrency, mode, phpRate) {
+  if (mode === 'all' || mode === fromCurrency.toLowerCase()) {
+    return fmt(amount, fromCurrency);
+  }
+  if (mode === 'usd' && fromCurrency === 'PHP') {
+    return fmt(parseFloat(amount) / phpRate, 'USD');
+  }
+  if (mode === 'php' && fromCurrency === 'USD') {
+    return fmt(parseFloat(amount) * phpRate, 'PHP');
+  }
+  return fmt(amount, fromCurrency);
 }
 
 export default function Summary() {
   const [records, setRecords] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Currency & Rates
+  const [currencyMode, setCurrencyMode] = useState('all'); // 'all' | 'usd' | 'php'
+  const [phpRate, setPhpRate] = useState(() => {
+    const cached = localStorage.getItem('fpbt_usdPhpRate');
+    if (cached) {
+      try {
+        const { rate } = JSON.parse(cached);
+        return rate || 58;
+      } catch { return 58; }
+    }
+    return 58;
+  });
 
   // Filters
   const [rangeType, setRangeType] = useState('month'); // 'month' | 'custom'
@@ -37,6 +63,12 @@ export default function Summary() {
       setLoading(false);
     }
     load();
+    
+    // Fetch live rate just in case
+    fetch('https://api.frankfurter.dev/v1/latest?from=USD&to=PHP')
+      .then(r => r.json())
+      .then(d => { if (d.rates?.PHP) setPhpRate(d.rates.PHP); })
+      .catch(console.error);
   }, []);
 
   const filtered = useMemo(() => {
@@ -70,8 +102,8 @@ export default function Summary() {
       else map[r.bank_id].usd += parseFloat(r.amount);
       map[r.bank_id].count++;
     });
-    return Object.entries(map).sort((a, b) => (b[1].php + b[1].usd * 58) - (a[1].php + a[1].usd * 58));
-  }, [filtered]);
+    return Object.entries(map).sort((a, b) => (b[1].php + b[1].usd * phpRate) - (a[1].php + a[1].usd * phpRate));
+  }, [filtered, phpRate]);
 
   // Group by job
   const byJob = useMemo(() => {
@@ -84,8 +116,8 @@ export default function Summary() {
       else map[key].usd += parseFloat(r.amount);
       map[key].count++;
     });
-    return Object.entries(map).sort((a, b) => (b[1].php + b[1].usd * 58) - (a[1].php + a[1].usd * 58));
-  }, [filtered]);
+    return Object.entries(map).sort((a, b) => (b[1].php + b[1].usd * phpRate) - (a[1].php + a[1].usd * phpRate));
+  }, [filtered, phpRate]);
 
   const activeFilterCount = [filterBank, filterJob, filterCurrency].filter(Boolean).length;
 
@@ -94,6 +126,25 @@ export default function Summary() {
       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
     </div>
   );
+
+  const renderTotals = () => {
+    if (currencyMode === 'all') {
+      return (
+        <>
+          {phpTotal > 0 && <div className="mb-2"><span className="text-emerald-300 font-bold text-5xl tracking-tighter">₱{phpTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>}
+          {usdTotal > 0 && <div className="mb-6"><span className="text-blue-200 font-semibold text-2xl tracking-tight">+ ${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>}
+        </>
+      );
+    }
+    if (currencyMode === 'usd') {
+      const total = usdTotal + (phpTotal / phpRate);
+      return <div className="mb-6"><span className="text-blue-200 font-bold text-5xl tracking-tighter">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>;
+    }
+    if (currencyMode === 'php') {
+      const total = phpTotal + (usdTotal * phpRate);
+      return <div className="mb-6"><span className="text-emerald-300 font-bold text-5xl tracking-tighter">₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>;
+    }
+  };
 
   // ── FULL SCREEN STORY INVOICE ──
   if (showInvoice) {
@@ -115,16 +166,7 @@ export default function Summary() {
               You've been<br/>paid
             </h2>
             
-            {phpTotal > 0 && (
-              <div className="mb-2">
-                <span className="text-emerald-300 font-bold text-5xl tracking-tighter">₱{phpTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
-              </div>
-            )}
-            {usdTotal > 0 && (
-              <div className="mb-6">
-                <span className="text-blue-200 font-semibold text-2xl tracking-tight">+ ${usdTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-              </div>
-            )}
+            {renderTotals()}
 
             <div className="flex items-center gap-2 text-xs font-semibold bg-black/20 w-max px-4 py-2 rounded-full backdrop-blur-md mt-6">
                <Banknote className="w-4 h-4" /> {filtered.length} Records tracked
@@ -145,8 +187,8 @@ export default function Summary() {
                       </p>
                       <p className="text-xs text-slate-500 font-medium">{new Date(record.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · {bank?.name}</p>
                     </div>
-                    <p className={`text-base font-black shrink-0 tracking-tight ${record.currency === 'PHP' ? 'text-emerald-400' : 'text-blue-400'}`}>
-                      {fmt(record.amount, record.currency)}
+                    <p className={`text-base font-black shrink-0 tracking-tight ${record.currency === 'PHP' && currencyMode !== 'usd' || currencyMode === 'php' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                      {fmtMode(record.amount, record.currency, currencyMode, phpRate)}
                     </p>
                   </div>
                 );
@@ -174,6 +216,20 @@ export default function Summary() {
           </button>
         </div>
         
+        {/* Currency Display Mode Toggle */}
+        <div className="flex gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+          {[
+            { id: 'all', label: 'All Currencies' },
+            { id: 'usd', label: 'USD Only' },
+            { id: 'php', label: 'PHP Only' }
+          ].map(m => (
+            <button key={m.id} onClick={() => setCurrencyMode(m.id)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${currencyMode === m.id ? 'bg-violet-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         <button 
           onClick={() => setShowInvoice(true)}
           disabled={filtered.length === 0}
@@ -264,8 +320,18 @@ export default function Summary() {
                       <p className="text-xs text-slate-500">{data.count} record{data.count !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="text-right text-xs space-y-0.5">
-                      {data.php > 0 && <p className="text-emerald-400 font-semibold">₱{data.php.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>}
-                      {data.usd > 0 && <p className="text-blue-400 font-semibold">${data.usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>}
+                      {currencyMode === 'all' && (
+                        <>
+                          {data.php > 0 && <p className="text-emerald-400 font-semibold">₱{data.php.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>}
+                          {data.usd > 0 && <p className="text-blue-400 font-semibold">${data.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>}
+                        </>
+                      )}
+                      {currencyMode === 'usd' && (
+                        <p className="text-blue-400 font-semibold">${(data.usd + data.php / phpRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      )}
+                      {currencyMode === 'php' && (
+                        <p className="text-emerald-400 font-semibold">₱{(data.php + data.usd * phpRate).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      )}
                     </div>
                   </div>
                 );
@@ -287,8 +353,18 @@ export default function Summary() {
                     <p className="text-xs text-slate-500">{data.count} record{data.count !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="text-right text-xs space-y-0.5">
-                    {data.php > 0 && <p className="text-emerald-400 font-semibold">₱{data.php.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>}
-                    {data.usd > 0 && <p className="text-blue-400 font-semibold">${data.usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>}
+                    {currencyMode === 'all' && (
+                      <>
+                        {data.php > 0 && <p className="text-emerald-400 font-semibold">₱{data.php.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>}
+                        {data.usd > 0 && <p className="text-blue-400 font-semibold">${data.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>}
+                      </>
+                    )}
+                    {currencyMode === 'usd' && (
+                      <p className="text-blue-400 font-semibold">${(data.usd + data.php / phpRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    )}
+                    {currencyMode === 'php' && (
+                      <p className="text-emerald-400 font-semibold">₱{(data.php + data.usd * phpRate).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -311,8 +387,8 @@ export default function Summary() {
                       </p>
                       <p className="text-xs text-slate-600">{new Date(record.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · {bank?.name}</p>
                     </div>
-                    <p className={`text-sm font-bold shrink-0 ${record.currency === 'PHP' ? 'text-emerald-400' : 'text-blue-400'}`}>
-                      {fmt(record.amount, record.currency)}
+                    <p className={`text-sm font-bold shrink-0 ${record.currency === 'PHP' && currencyMode !== 'usd' || currencyMode === 'php' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                      {fmtMode(record.amount, record.currency, currencyMode, phpRate)}
                     </p>
                   </div>
                 );
@@ -324,3 +400,4 @@ export default function Summary() {
     </div>
   );
 }
+

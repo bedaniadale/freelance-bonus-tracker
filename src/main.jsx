@@ -6,6 +6,7 @@ import BottomNav from './components/BottomNav'
 import BonusTracker from './App'
 import FinanceTracker from './pages/FinanceTracker'
 import Summary from './pages/Summary'
+import PostChecker from './pages/PostChecker'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -16,6 +17,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="/" element={<BonusTracker />} />
             <Route path="/finance" element={<FinanceTracker />} />
             <Route path="/summary" element={<Summary />} />
+            <Route path="/checker" element={<PostChecker />} />
           </Routes>
         </div>
         <BottomNav />

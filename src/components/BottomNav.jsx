@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { TrendingUp, Wallet, BarChart2 } from 'lucide-react';
+import { TrendingUp, Wallet, BarChart2, Search } from 'lucide-react';
 
 export default function BottomNav() {
   const base = 'flex flex-col items-center gap-1 py-2 px-4 text-xs font-medium transition-colors';
@@ -20,6 +20,10 @@ export default function BottomNav() {
         <NavLink to="/summary" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
           <BarChart2 className="w-5 h-5" />
           <span>Summary</span>
+        </NavLink>
+        <NavLink to="/checker" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
+          <Search className="w-5 h-5" />
+          <span>Check</span>
         </NavLink>
       </div>
     </nav>

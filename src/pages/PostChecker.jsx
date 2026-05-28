@@ -126,12 +126,12 @@ export default function PostChecker() {
           )}
 
           {status === 'not_found' && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 mb-3">
-                <CheckCircle className="w-6 h-6 text-slate-400" />
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 mb-3">
+                <CheckCircle className="w-6 h-6 text-emerald-400" />
               </div>
-              <h4 className="text-lg font-semibold text-slate-200 mb-1">Clear to Track</h4>
-              <p className="text-sm text-slate-400">This post is neither in the active vault nor in the payout history.</p>
+              <h4 className="text-lg font-semibold text-emerald-400 mb-1">Clear to Track</h4>
+              <p className="text-sm text-emerald-200/70">This post is neither in the active vault nor in the payout history.</p>
             </div>
           )}
 
